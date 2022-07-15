@@ -1,0 +1,122 @@
+Partie 2:
+
+q1:
+Le script créer 3 tables
+une table ville ,département et region
+les villes sont relié à departement avec le numéro de département auquelles il est relié
+et les départemement sont relié avec les regions avec le numéro de reégion
+
+
+
+set autotrace on
+q2: select nom from ville where insee = '34172';
+
+
+Plan d execution
+----------------------------------------------------------
+Plan hash value: 2371920588
+
+---------------------------------------------------------------------------
+| Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |       |     5 |   280 |   137   (1)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| VILLE |     5 |   280 |   137   (1)| 00:00:01 |
+---------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("INSEE"='34172')
+
+
+
+
+L otpimisateur parcours toute la table pour retrouver le nom de la ville 
+
+          0  recursive calls
+          0  db block gets
+        192  consistent gets
+          0  physical reads
+          0  redo size
+        554  bytes sent via SQL*Net to client
+        369  bytes received via SQL*Net from client
+          2  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+          1  rows processed
+
+
+
+q3:
+ALTER TABLE ville ADD PRIMARY KEY (insee); 
+
+q4:
+| Id  | Operation                   | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+
+--------------------------------------------------------------------------------
+-------------
+
+|   0 | SELECT STATEMENT            |               |     1 |    56 |     2   (0)| 00:00:01 |
+
+|   1 |  TABLE ACCESS BY INDEX ROWID| VILLE         |     1 |    56 |     2   (0)| 00:00:01 |
+
+|*  2 |   INDEX UNIQUE SCAN         | SYS_C00306884 |     1 |       |     1   (0)| 00:00:01 |
+
+--------------------------------------------------------------------------------
+-------------
+
+
+Au lieu de faire toute la table il passe que les clé primaires
+
+
+          0  recursive calls
+          0  db block gets
+          3  consistent gets
+          0  physical reads
+          0  redo size
+        423  bytes sent via SQL*Net to client
+        358  bytes received via SQL*Net from client
+          1  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+          1  rows processed
+
+
+
+elle coute moins cher en temps et en espace 
+
+
+q5:
+select d.nom from departement d, ville v where v.dep = d.id and v.insee = '34172';
+
+q6:
+select v.nom, d.nom from departement d, ville v where v.dep = d.id;
+//select d.nom from departement d, ville v where v.dep = d.id group by d.nom ;
+
+q7:
+select v.nom, d.nom from ville v, departement d where v.dep = d.id and d.id = 91;   // MARCHE PAS ?
+select v.nom, d.nom from ville v, departement d where v.dep = d.id and d.id = '91';
+
+q8:
+select /*+ use_nl(ville departement)*/ v.nom ,d.nom from ville v , departement d where v.dep = d.id; 
+
+Il a fait des hash join puis 2 acces complet au table
+
+q9:
+create index idx_dep_ville on ville (dep);
+select /*+ use_nl(ville departement)*/ v.nom ,d.nom from ville v , departement d where v.dep = d.id; 
+
+
+q10:
+select /*+ use_nl(ville departement)*/ v.nom ,d.nom , r.nom from ville v , departement d , region r where v.dep = d.id and d.reg = r.id; 
+
+q11:
+create index idx_dep_reg on departement (reg);
+
+Departement n est pas parcouru entierement
+
+q12:
+select v.nom ,d.nom , r.nom from ville v , departement d , region r where v.dep = d.id and d.reg = r.id and r.id='91'; 
+
+q13:
+select nom from ville where dep='7';

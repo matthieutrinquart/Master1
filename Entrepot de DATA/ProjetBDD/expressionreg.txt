@@ -1,0 +1,4 @@
+TER|TGV|TRAM|LOCOMOTVE
+tours St pierre|rouen|paris-montparnasse|le mans|rennes|brest|quimper|nantes|lille|valenciennes|fréthun|paris-nord|paris-sud-est|dijon|lyon-scaronne|avignon|dunkerque|Paris SE|Dijon|Besançon|Lyon Scaronne|Chambéry|Grenoble|St-Etiennes|Avignon|Nimes |Montpellier|Perpignan|Marseilles|Nice
+
+GARES:

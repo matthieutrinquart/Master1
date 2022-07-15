@@ -1,0 +1,65 @@
+TP1
+
+I. Files de message :
+
+1. Pi envois une demande d'accés à Pctrl avec son PID dans le corps du message.
+Pctrl prends la première demande d'accés et envois un message d'autorisation d'accés avec le PID du processus demandeur.
+Pctrl se mets en attente d'une libération d'accés d'étiquette quelconque (2 par exemple).
+Pi fait son traitement et envois une libération d'accés.
+Pctrl lis la libération d'accés et recommence son exécution.
+
+Remarque : L'utilisation d'étiquette avec un PID empêche qu'un processus non concerné ne récupère le mauvais message.
+
+Donc :
+PCtrl :
+while(1) {
+	attente DA;
+	envoi AA (au processus demandeur);
+	attente LA;
+}
+
+Pi :
+...
+Envoi DA; (avec PID)
+Attente AA (avec PID);
+MODIF_RESSOURCE;
+Envoi LA;
+
+/!\ : Il faudra bien penser à supprimer la file après l'exécution du programme.
+/!\ : Ne pas utiliser de paramètres en dur dans le code
+
+2. Soit PCtrl, soit un processus externe qui supprimera la file après la fin de PCtrl.
+
+3. Oui
+
+4. Pas d'interblocage, une famine est possible (un processus peut demander l'accés et ne jamais le rendre).
+
+5. A FAIRE A LA MAISON
+
+II. Tableau de sémaphores
+
+On connait le nombre de processus à l'avance (passé en paramètre du programme, pas en dur).
+On crée un sémaphore de la valeur du nombre de processus.
+A la fin du calcul de chaque processus, chacun fait P(1) et puis Z(). Quand tout les processus seront exécutés, alors le sémaphore sera à 0 et donc Z() ne sera plus bloquant.
+Dans notre utilisation P ne peut pas être bloquant, parce qu'il y a exactement un jeton par processus.
+On utilisera par ailleurs un processus d'initialisation pour initier le sémaphore et lancer chaque processus.
+
+Example avec 4 processus :
+S(4)
+P1, P2, P3, P4 vont chacun décrémenter S puis attendre que S soit à 0.
+Donc quand les 4 seront exécutés, S sera à 0 et Z ne sera plus bloquant.
+
+Note sur le C :
+//Compiler avec la fonction calcul
+#include "calcul.h"
+gcc ex2_tris_process.c calculC.o -o ex2_tris_process
+
+CODE : 
+//Initialise la sémaphore
+./ex2_tris_init pourCle.txt 1 3 
+
+//On fait tourner manuellement nos "threads" pour décrementer le sémaphore
+./ex2_tris_processus pourCle.txt 1
+
+//On supprime le sémaphore une fois qu'on a terminé
+./supprimeSem pourCle.txt 1

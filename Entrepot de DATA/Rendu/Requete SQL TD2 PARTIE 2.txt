@@ -1,0 +1,855 @@
+/*1 Les plans d’exécution sous ORACLE*/
+
+2)
+select nom
+from ville
+where insee = '34172';
+
+/*
+
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2371920588
+
+---------------------------------------------------------------------------
+| Id  | Operation         | Name  | Rows  | Bytes | Cost (%CPU)| Time     |
+---------------------------------------------------------------------------
+|   0 | SELECT STATEMENT  |       |     3 |   168 |    68   (0)| 00:00:01 |
+|*  1 |  TABLE ACCESS FULL| VILLE |     3 |   168 |    68   (0)| 00:00:01 |
+---------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - filter("INSEE"='34172')
+*/
+
+Le plan d exécution est le suivant. Dans en premier temps, Oracle va accéder entièrement à la table,
+puis effectuera un filtre sur cette meme table en prenant toutes les lignes dont l INSEE = '34172'.
+De plus, Oracle estime que 3 lignes seront selectionner, 168 Bytes avec un cout de 68
+3)
+
+ALTER TABLE ville ADD CONSTRAINT pk_ville PRIMARY KEY(insee);
+
+4)
+/*
+
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2141926878
+
+----------------------------------------------------------------------------------------
+| Id  | Operation                   | Name     | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT            |          |     1 |    56 |     2   (0)| 00:00:01 |
+|   1 |  TABLE ACCESS BY INDEX ROWID| VILLE    |     1 |    56 |     2   (0)| 00:00:01 |
+|*  2 |   INDEX UNIQUE SCAN         | PK_VILLE |     1 |       |     1   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("INSEE"='34172')
+
+
+Statistiques
+----------------------------------------------------------
+          1  recursive calls
+          0  db block gets
+          3  consistent gets
+          1  physical reads
+          0  redo size
+        423  bytes sent via SQL*Net to client
+        358  bytes received via SQL*Net from client
+          1  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+          1  rows processed
+*/
+
+/*1.2 Jointure*/
+
+Ici Oracle va sélectionner uniquement l index de la ville car une clé primaire y a été ajouté, 
+sur cette accès, on va filtrer la table afin de prendre que les ligne correspodantes,
+par la suite il va accéder à la table ville en utilisant la table obtenu grace à l index precedant.
+Enfin, il nous retournera les lignes obtenues.
+  
+5)
+
+select nom
+from departement
+where id In (
+	select dep
+	from ville
+	where insee ='34172'); 
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2609026702
+
+----------------------------------------------------------------------------------------------
+| Id  | Operation                    | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |               |     1 |    39 |     3   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                |               |     1 |    39 |     3   (0)| 00:00:01 |
+|   2 |   TABLE ACCESS BY INDEX ROWID| VILLE         |     1 |     8 |     2   (0)| 00:00:01 |
+|*  3 |    INDEX UNIQUE SCAN         | PK_VILLE      |     1 |       |     1   (0)| 00:00:01 |
+|   4 |   TABLE ACCESS BY INDEX ROWID| DEPARTEMENT   |     1 |    31 |     1   (0)| 00:00:01 |
+|*  5 |    INDEX UNIQUE SCAN         | SYS_C00306315 |     1 |       |     0   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - access("INSEE"='34172')
+   5 - access("ID"="DEP")
+
+
+Statistiques
+----------------------------------------------------------
+          0  recursive calls
+          0  db block gets
+          5  consistent gets
+          0  physical reads
+          0  redo size
+        551  bytes sent via SQL*Net to client
+        411  bytes received via SQL*Net from client
+          2  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+          1  rows processed
+*/
+
+Dans un premier temps, Oracle utilisera l index pk_ville afin d y appliquer le filtre insee = '34172'
+puis recuperera les valeurs correspodantes dans la table ville. Par la suite, Oracle utilisera l index
+pour faire la jointure, afin de croiser les données. Enfin Oracle utilisera une boucle imbrique pour ensuite sortir la réponse
+Oracle estimera qu une seule ligne sera resultante de la requete
+
+6)
+select DISTINCT nom
+from departement
+where id In (
+	select dep
+	from ville); 
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 3968357378
+
+-----------------------------------------------------------------------------------
+| Id  | Operation           | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT    |             |   100 |  1700 |    73   (3)| 00:00:01 |
+|   1 |  HASH UNIQUE        |             |   100 |  1700 |    73   (3)| 00:00:01 |
+|*  2 |   HASH JOIN SEMI    |             |   100 |  1700 |    72   (2)| 00:00:01 |
+|   3 |    TABLE ACCESS FULL| DEPARTEMENT |   104 |  1456 |     3   (0)| 00:00:01 |
+|   4 |    TABLE ACCESS FULL| VILLE       | 36601 |   107K|    68   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("ID"="DEP")
+
+
+Statistiques
+----------------------------------------------------------
+          1  recursive calls
+          0  db block gets
+        196  consistent gets
+          0  physical reads
+          0  redo size
+       2940  bytes sent via SQL*Net to client
+        465  bytes received via SQL*Net from client
+          8  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+        100  rows processed
+*/
+
+Le SGBD ici accedera en premier à la table departement, puis à la table ville,
+par la suite il fera un HASH JOIN sur les 2 table ouvertes, puis il nous retournera
+les lignes résultentent de la requête.
+
+7)
+select DISTINCT D.nom, V.nom
+from departement D, ville V
+where dep = id and id = 91;
+
+/*Erreur à id = 91*/
+
+select DISTINCT D.nom, V.nom
+from departement D, ville V
+where dep = id and id = '91';
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2387145769
+
+-----------------------------------------------------------------------------------------------
+| Id  | Operation                     | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT              |               |   139 |  4170 |    71   (3)| 00:00:01 |
+|   1 |  HASH UNIQUE                  |               |   139 |  4170 |    71   (3)| 00:00:01 |
+|   2 |   NESTED LOOPS                |               |   196 |  5880 |    70   (2)| 00:00:01 |
+|   3 |    TABLE ACCESS BY INDEX ROWID| DEPARTEMENT   |     1 |    14 |     1   (0)| 00:00:01 |
+|*  4 |     INDEX UNIQUE SCAN         | SYS_C00306315 |     1 |       |     0   (0)| 00:00:01 |
+|*  5 |    TABLE ACCESS FULL          | VILLE         |   196 |  3136 |    69   (2)| 00:00:01 |
+-----------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("ID"='91')
+   5 - filter("DEP"='91')
+
+
+Statistiques
+----------------------------------------------------------
+          1  recursive calls
+          0  db block gets
+        192  consistent gets
+        188  physical reads
+          0  redo size
+       6822  bytes sent via SQL*Net to client
+        554  bytes received via SQL*Net from client
+         15  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+        196  rows processed
+*/
+
+Dans un premier temps, le SGBD va accéder à l index de departement afin d y appliquer
+le filtre dep = '91', pour ensuite récuperer les lignes voulu dans departement, par 
+la suite il va acceder à la table ville puis va faire une NESTED LOOPS sur les 2 tables.
+
+Ici par contre on peut voir qu il y a enormement de lecture physique (ce qui ralenti la requete)
+
+
+
+/*1.3 Modification du comportement de l'optimiseur*/
+
+8)
+
+select /*+ use_nl(depatement ville)*/ D.nom
+from departement D, ville V
+where id = dep and insee = '34172'; 
+
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2609026702
+
+----------------------------------------------------------------------------------------------
+| Id  | Operation                    | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |               |     1 |    23 |     3   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                |               |     1 |    23 |     3   (0)| 00:00:01 |
+|   2 |   TABLE ACCESS BY INDEX ROWID| VILLE         |     1 |     9 |     2   (0)| 00:00:01 |
+|*  3 |    INDEX UNIQUE SCAN         | PK_VILLE      |     1 |       |     1   (0)| 00:00:01 |
+|   4 |   TABLE ACCESS BY INDEX ROWID| DEPARTEMENT   |     1 |    14 |     1   (0)| 00:00:01 |
+|*  5 |    INDEX UNIQUE SCAN         | SYS_C00306315 |     1 |       |     0   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - access("INSEE"='34172')
+   5 - access("ID"="DEP")
+
+
+Statistiques
+----------------------------------------------------------
+          5  recursive calls
+          0  db block gets
+          8  consistent gets
+          7  physical reads
+          0  redo size
+        551  bytes sent via SQL*Net to client
+        432  bytes received via SQL*Net from client
+          2  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+          1  rows processed
+*/
+
+Ici, force le NESTED LOOPS augment le nombre de physical reads et de consistent gets,
+donc la requete aura un temps d execution plus long que la precedante si on avait plus de lignes 
+dans les tables
+
+
+select /*+ use_nl(depatement ville)*/ DISTINCT D.nom
+from departement D, ville V
+where id = dep; 
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 3968357378
+
+-----------------------------------------------------------------------------------
+| Id  | Operation           | Name        | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT    |             |   100 |  1700 |    73   (3)| 00:00:01 |
+|   1 |  HASH UNIQUE        |             |   100 |  1700 |    73   (3)| 00:00:01 |
+|*  2 |   HASH JOIN SEMI    |             |   100 |  1700 |    72   (2)| 00:00:01 |
+|   3 |    TABLE ACCESS FULL| DEPARTEMENT |   104 |  1456 |     3   (0)| 00:00:01 |
+|   4 |    TABLE ACCESS FULL| VILLE       | 36601 |   107K|    68   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("ID"="DEP")
+
+
+Statistiques
+----------------------------------------------------------
+          1  recursive calls
+          0  db block gets
+        196  consistent gets
+        189  physical reads
+          0  redo size
+       2940  bytes sent via SQL*Net to client
+        487  bytes received via SQL*Net from client
+          8  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+        100  rows processed
+*/
+
+On peut voir qu en forcant une NESTED LOOPS, le nombre de physical reads augment énormement,
+on passe de 0 à 189, mais le plan d execution reste inchangé par rapport à la requete faite sans
+force la NESTED LOOPS
+
+select /*+ use_nl(depatement ville)*/ DISTINCT D.nom, V.nom
+from departement D, ville V
+where dep = id and id = '91';
+
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2387145769
+
+-----------------------------------------------------------------------------------------------
+| Id  | Operation                     | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT              |               |   139 |  4170 |    71   (3)| 00:00:01 |
+|   1 |  HASH UNIQUE                  |               |   139 |  4170 |    71   (3)| 00:00:01 |
+|   2 |   NESTED LOOPS                |               |   196 |  5880 |    70   (2)| 00:00:01 |
+|   3 |    TABLE ACCESS BY INDEX ROWID| DEPARTEMENT   |     1 |    14 |     1   (0)| 00:00:01 |
+|*  4 |     INDEX UNIQUE SCAN         | SYS_C00306315 |     1 |       |     0   (0)| 00:00:01 |
+|*  5 |    TABLE ACCESS FULL          | VILLE         |   196 |  3136 |    69   (2)| 00:00:01 |
+-----------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("ID"='91')
+   5 - filter("DEP"='91')
+
+
+Statistiques
+----------------------------------------------------------
+          1  recursive calls
+          0  db block gets
+        192  consistent gets
+          0  physical reads
+          0  redo size
+       6822  bytes sent via SQL*Net to client
+        585  bytes received via SQL*Net from client
+         15  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+        196  rows processed
+*/
+
+De même pour cette requete, le plan d execution reste inchangé mais, le nombre de physical reads
+réduit drastiquement, il passe de 189 à 0
+
+/*1.4 Utilisation d'index*/
+
+9)
+create index idx_dep_ville on ville (dep);
+
+select nom
+from departement
+where id In (
+	select dep
+	from ville
+	where insee ='34172');
+
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2609026702
+
+----------------------------------------------------------------------------------------------
+| Id  | Operation                    | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT             |               |     1 |    23 |     3   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                |               |     1 |    23 |     3   (0)| 00:00:01 |
+|   2 |   TABLE ACCESS BY INDEX ROWID| VILLE         |     1 |     9 |     2   (0)| 00:00:01 |
+|*  3 |    INDEX UNIQUE SCAN         | PK_VILLE      |     1 |       |     1   (0)| 00:00:01 |
+|   4 |   TABLE ACCESS BY INDEX ROWID| DEPARTEMENT   |     1 |    14 |     1   (0)| 00:00:01 |
+|*  5 |    INDEX UNIQUE SCAN         | SYS_C00306315 |     1 |       |     0   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   3 - access("INSEE"='34172')
+   5 - access("ID"="DEP")
+
+
+Statistiques
+----------------------------------------------------------
+          3  recursive calls
+          0  db block gets
+         11  consistent gets
+          2  physical reads
+          0  redo size
+        551  bytes sent via SQL*Net to client
+        411  bytes received via SQL*Net from client
+          2  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+          1  rows processed
+*/
+
+select DISTINCT nom
+from departement
+where id In (
+	select dep
+	from ville);
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2878305226
+
+----------------------------------------------------------------------------------------
+| Id  | Operation              | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+----------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT       |               |   100 |  1700 |    26   (8)| 00:00:01 |
+|   1 |  HASH UNIQUE           |               |   100 |  1700 |    26   (8)| 00:00:01 |
+|*  2 |   HASH JOIN SEMI       |               |   100 |  1700 |    25   (4)| 00:00:01 |
+|   3 |    TABLE ACCESS FULL   | DEPARTEMENT   |   104 |  1456 |     3   (0)| 00:00:01 |
+|   4 |    INDEX FAST FULL SCAN| IDX_DEP_VILLE | 36601 |   107K|    21   (0)| 00:00:01 |
+----------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   2 - access("ID"="DEP")
+
+Note
+-----
+   - this is an adaptive plan
+
+
+Statistiques
+----------------------------------------------------------
+          1  recursive calls
+          0  db block gets
+         84  consistent gets
+         72  physical reads
+          0  redo size
+       2940  bytes sent via SQL*Net to client
+        465  bytes received via SQL*Net from client
+          8  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+        100  rows processed
+*/
+
+select DISTINCT D.nom, V.nom
+from departement D, ville V
+where dep = id and id = '91';
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 474473299
+
+-------------------------------------------------------------------------------------------------------
+| Id  | Operation                             | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+-------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                      |               |   139 |  4170 |     5  (20)| 00:00:01 |
+|   1 |  HASH UNIQUE                          |               |   139 |  4170 |     5  (20)| 00:00:01 |
+|   2 |   NESTED LOOPS                        |               |   196 |  5880 |     4   (0)| 00:00:01 |
+|   3 |    TABLE ACCESS BY INDEX ROWID        | DEPARTEMENT   |     1 |    14 |     1   (0)| 00:00:01 |
+|*  4 |     INDEX UNIQUE SCAN                 | SYS_C00306315 |     1 |       |     0   (0)| 00:00:01 |
+|   5 |    TABLE ACCESS BY INDEX ROWID BATCHED| VILLE         |   196 |  3136 |     3   (0)| 00:00:01 |
+|*  6 |     INDEX RANGE SCAN                  | IDX_DEP_VILLE |   196 |       |     1   (0)| 00:00:01 |
+-------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - access("ID"='91')
+   6 - access("DEP"='91')
+
+
+Statistiques
+----------------------------------------------------------
+          1  recursive calls
+          0  db block gets
+          6  consistent gets
+          0  physical reads
+          0  redo size
+       6822  bytes sent via SQL*Net to client
+        554  bytes received via SQL*Net from client
+         15  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+        196  rows processed
+*/
+
+Grace à l index cree precedemment, on peux voir que oracle va l utiliser lors du plan
+d execution, cela permet dans certaines requete de gagner en efficacite, mais d en d autres
+en perdre comme pour la 2 eme requete, où on à +72 physical reads.
+
+10)
+
+select V.nom, D.nom, R.nom
+from ville V, departement D, region R
+where dep = D.id and reg = R.id;
+
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2913878490
+
+-----------------------------------------------------------------------------------------------
+| Id  | Operation                     | Name          | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT              |               | 36601 |  1751K|    75   (3)| 00:00:01 |
+|*  1 |  HASH JOIN                    |               | 36601 |  1751K|    75   (3)| 00:00:01 |
+|   2 |   MERGE JOIN                  |               |   104 |  3432 |     6  (17)| 00:00:01 |
+|   3 |    TABLE ACCESS BY INDEX ROWID| REGION        |    27 |   432 |     2   (0)| 00:00:01 |
+|   4 |     INDEX FULL SCAN           | SYS_C00306314 |    27 |       |     1   (0)| 00:00:01 |
+|*  5 |    SORT JOIN                  |               |   104 |  1768 |     4  (25)| 00:00:01 |
+|   6 |     TABLE ACCESS FULL         | DEPARTEMENT   |   104 |  1768 |     3   (0)| 00:00:01 |
+|   7 |   TABLE ACCESS FULL           | VILLE         | 36601 |   571K|    68   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - access("DEP"="D"."ID")
+   5 - access("REG"="R"."ID")
+       filter("REG"="R"."ID")
+
+Note
+-----
+   - this is an adaptive plan
+
+
+Statistiques
+----------------------------------------------------------
+         88  recursive calls
+         12  db block gets
+       2780  consistent gets
+         13  physical reads
+       2108  redo size
+    1115128  bytes sent via SQL*Net to client
+      27262  bytes received via SQL*Net from client
+       2442  SQL*Net roundtrips to/from client
+         14  sorts (memory)
+          0  sorts (disk)
+      36601  rows processed
+*/
+
+Le SGBD va en premier acceder à l index de la table Region, puis acceder à toutes les ligne de Region car,
+aucun filtre été appliquer, ensuite, il va acceder à la table de departement pour après faire une jointure de 
+tri-fusion entre les 2 tables sur l attribut reg = R.ID. Après cela, il va acceder à a table ville puis faire un hash join entre la tables
+resultante du tri-fusion et la table ville sur l attribut dep = D.ID.
+
+On peut voir que cette requete coute peut en physical reads, mais plus en consistent gets (ce qui est mieux)
+
+11)
+create index idx_reg_departement on departement (reg);
+
+select V.nom, D.nom, R.nom
+from ville V, departement D, region R
+where dep = D.id and reg = R.id;
+
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 1835970908
+
+-----------------------------------------------------------------------------------------------------
+| Id  | Operation                     | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT              |                     | 36601 |  1751K|    75   (3)| 00:00:01 |
+|*  1 |  HASH JOIN                    |                     | 36601 |  1751K|    75   (3)| 00:00:01 |
+|   2 |   MERGE JOIN                  |                     |   104 |  3432 |     6  (17)| 00:00:01 |
+|   3 |    TABLE ACCESS BY INDEX ROWID| DEPARTEMENT         |   104 |  1768 |     2   (0)| 00:00:01 |
+|   4 |     INDEX FULL SCAN           | IDX_REG_DEPARTEMENT |   104 |       |     1   (0)| 00:00:01 |
+|*  5 |    SORT JOIN                  |                     |    27 |   432 |     4  (25)| 00:00:01 |
+|   6 |     TABLE ACCESS FULL         | REGION              |    27 |   432 |     3   (0)| 00:00:01 |
+|   7 |   TABLE ACCESS FULL           | VILLE               | 36601 |   571K|    68   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - access("DEP"="D"."ID")
+   5 - access("REG"="R"."ID")
+       filter("REG"="R"."ID")
+
+Note
+-----
+   - this is an adaptive plan
+
+
+Statistiques
+----------------------------------------------------------
+          3  recursive calls
+          5  db block gets
+       2632  consistent gets
+          6  physical reads
+       1104  redo size
+    1115128  bytes sent via SQL*Net to client
+      27262  bytes received via SQL*Net from client
+       2442  SQL*Net roundtrips to/from client
+          1  sorts (memory)
+          0  sorts (disk)
+      36601  rows processed
+*/
+
+La difference que l on peut voir ici, c est que au lieu de commencer par la table region, le sgbd va commencer
+par prendre tout l index precedemment creer afin ensuite de faire un join avec la table region, puis la suite sera
+la meme que avant l index.
+
+Mais ce que l on peut voir, c est que le nombre de physical reads et de consistent gets reduit de 7 et 148 respectivement.
+Donc la requete sera plus efficace grace à cette index.
+
+12)
+
+select V.nom, D.nom, R.nom
+from ville V, departement D, region R
+where dep = D.id and reg = R.id and R.id = '91';
+
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 1726661246
+
+--------------------------------------------------------------------------------------------------------------
+| Id  | Operation                              | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                       |                     |  1830 | 89670 |    21   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                          |                     |  1830 | 89670 |    21   (0)| 00:00:01 |
+|   2 |   NESTED LOOPS                         |                     |  1830 | 89670 |    21   (0)| 00:00:01 |
+|   3 |    NESTED LOOPS                        |                     |     5 |   165 |     2   (0)| 00:00:01 |
+|   4 |     TABLE ACCESS BY INDEX ROWID        | REGION              |     1 |    16 |     1   (0)| 00:00:01 |
+|*  5 |      INDEX UNIQUE SCAN                 | SYS_C00306314       |     1 |       |     0   (0)| 00:00:01 |
+|   6 |     TABLE ACCESS BY INDEX ROWID BATCHED| DEPARTEMENT         |     5 |    85 |     1   (0)| 00:00:01 |
+|*  7 |      INDEX RANGE SCAN                  | IDX_REG_DEPARTEMENT |     5 |       |     0   (0)| 00:00:01 |
+|*  8 |    INDEX RANGE SCAN                    | IDX_DEP_VILLE       |   366 |       |     1   (0)| 00:00:01 |
+|   9 |   TABLE ACCESS BY INDEX ROWID          | VILLE               |   366 |  5856 |     4   (0)| 00:00:01 |
+--------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   5 - access("R"."ID"=91)
+   7 - access("REG"=91)
+   8 - access("DEP"="D"."ID")
+
+Note
+-----
+   - this is an adaptive plan
+
+
+Statistiques
+----------------------------------------------------------
+          0  recursive calls
+          0  db block gets
+        243  consistent gets
+          0  physical reads
+          0  redo size
+      47619  bytes sent via SQL*Net to client
+       1560  bytes received via SQL*Net from client
+        104  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+       1543  rows processed
+*/
+
+D abord, il accede à l index de la table region avec le comme acces: R.ID = '91', puis accede au element
+de la table region qui respecte cette condition. Ensuite, il utilise l index de reg sur departement pour 
+acceder au element qui respecte REG = '91'. Sur ces 2 tables, il fait une NESTED LOOPS, puis il accede à l index
+dep de ville tout en respectant DEP = D.ID pour ensuite faire une NESTED LOOPS sur l index IDX_DEP_VILLE et
+la table obtenu par le NESTED LOOPS precedante. Enfin, il accede a la table ville pour faire un NESTED
+LOOPS sur les tables ville et celle obtenu par le 2nd NESTED LOOPS.
+
+Au final cette requete coute peu, seulement 243 consistent gets.
+
+13)
+
+select V.nom, D.nom, R.nom
+from ville V, departement D, region R
+where dep = D.id and reg = R.id and R.id LIKE '7%';
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2524100591
+
+--------------------------------------------------------------------------------------------------------------
+| Id  | Operation                              | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                       |                     |  1830 | 89670 |    23   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                          |                     |  1830 | 89670 |    23   (0)| 00:00:01 |
+|   2 |   NESTED LOOPS                         |                     |  1830 | 89670 |    23   (0)| 00:00:01 |
+|   3 |    NESTED LOOPS                        |                     |     5 |   165 |     4   (0)| 00:00:01 |
+|*  4 |     TABLE ACCESS FULL                  | REGION              |     1 |    16 |     3   (0)| 00:00:01 |
+|   5 |     TABLE ACCESS BY INDEX ROWID BATCHED| DEPARTEMENT         |     4 |    68 |     1   (0)| 00:00:01 |
+|*  6 |      INDEX RANGE SCAN                  | IDX_REG_DEPARTEMENT |     4 |       |     0   (0)| 00:00:01 |
+|*  7 |    INDEX RANGE SCAN                    | IDX_DEP_VILLE       |   366 |       |     1   (0)| 00:00:01 |
+|   8 |   TABLE ACCESS BY INDEX ROWID          | VILLE               |   352 |  5632 |     4   (0)| 00:00:01 |
+--------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - filter(TO_CHAR("R"."ID") LIKE '7%')
+   6 - access("REG"="R"."ID")
+   7 - access("DEP"="D"."ID")
+
+Note
+-----
+   - this is an adaptive plan
+
+
+Statistiques
+----------------------------------------------------------
+          9  recursive calls
+          6  db block gets
+        904  consistent gets
+         22  physical reads
+       1056  redo size
+     181215  bytes sent via SQL*Net to client
+       4885  bytes received via SQL*Net from client
+        406  SQL*Net roundtrips to/from client
+          0  sorts (memory)
+          0  sorts (disk)
+       6062  rows processed
+*/
+
+Dans en premier temps, le SGBD accede à l index reg de departement avec comme condition REG = R.ID,
+puis il accede au valeur correspodantes dans la tables departement. Par la suite, il accede entierement
+a la table Region avec comme condition 'TO_CHAR("R"."ID") LIKE '7%')' pour ensuite faire une NESTED LOOPS.
+Après, il accede a l index de dep dans ville pour prendre les valeurs correspondantes a DEP = D.ID pour ensuite
+a nouveau faire une NESTED LOOPS entre la premiere NESTED LOOPS et l index. A la fin, le SGBD accede a la table
+ville pour recuperer les valeurs resultante de la requete en faisant une derniere NESTED LOOPS entre la 2nd et 
+la table ville.
+
+On peut voir que cette requete coute, car l obtient 904 consistent gets et 22 physical reads.
+
+/*1.5 Les statistiques des tables*/
+
+14)
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+WHERE TABLE_NAME = 'VILLE'
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+INSEE
+                                36601          0 ,000027322 23/09/2021
+NOM
+                                33772          0  ,00002961 23/09/2021
+DEP
+                                  100          0 ,000013661 23/09/2021
+*/
+
+
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+where TABLE_NAME = 'REGION';
+
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+ID
+                                   27          0 ,037037037 23/09/2021
+NOM
+                                   27          0 ,037037037 23/09/2021*/
+
+
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+where TABLE_NAME = 'DEPARTEMENT';
+
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+ID
+                                  104          0 ,009615385 23/09/2021
+NOM
+                                  104          0 ,009615385 23/09/2021
+REG
+                                   27          0 ,004807692 23/09/2021
+*/
+
+EXECUTE DBMS_STATS.GATHER_SCHEMA_STATS('e20180001328');
+
+
+
+
+
+
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+WHERE TABLE_NAME = 'VILLE';
+/*
+CCOLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+INSEE
+                                36601          0 ,000027322 25/09/2021
+NOM
+                                33772          0  ,00002961 25/09/2021
+DEP
+                                  100          0 ,000013661 25/09/2021
+*/
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+where TABLE_NAME = 'REGION';
+
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+ID
+                                   27          0 ,037037037 25/09/2021
+NOM
+                                   27          0 ,037037037 25/09/2021*/
+
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+where TABLE_NAME = 'DEPARTEMENT';
+
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+ID
+                                  104          0 ,009615385 25/09/2021
+NOM
+                                  104          0 ,009615385 25/09/2021
+REG
+                                   27          0 ,004807692 25/09/2021*/
+
+Les Statistiques étant mise à jour chaque nuit et que la table à était crée sur mon compte Jeudi, c est pour cela
+que l on ne voit pas de difference apres la mise à jour force de ces stats

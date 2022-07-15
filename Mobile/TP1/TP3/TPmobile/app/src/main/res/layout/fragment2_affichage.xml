@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    <TextView
+            android:text="Nom : "
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="102dp"
+            android:layout_height="39dp" android:id="@+id/textView4"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.045" app:layout_constraintVertical_bias="0.022"/>
+    <TextView
+            android:text="idNOM"
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="193dp"
+            android:layout_height="37dp" android:id="@+id/idnom"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.77" app:layout_constraintVertical_bias="0.021"/>
+    <TextView
+            android:text="Prenom : "
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="102dp"
+            android:layout_height="39dp" android:id="@+id/textView5"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.051" app:layout_constraintVertical_bias="0.101"/>
+    <TextView
+            android:text="IDPRENOM"
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="198dp"
+            android:layout_height="40dp" android:id="@+id/idprenom"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.765" app:layout_constraintVertical_bias="0.099"/>
+    <TextView
+            android:text="Date : "
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="102dp"
+            android:layout_height="39dp" android:id="@+id/textView7"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.051" app:layout_constraintVertical_bias="0.186"/>
+    <TextView
+            android:text="ID_DATE"
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="202dp"
+            android:layout_height="42dp" android:id="@+id/idDate"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.803" app:layout_constraintVertical_bias="0.187"/>
+
+    <TextView
+            android:text="Numéro : "
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="102dp"
+            android:layout_height="39dp" android:id="@+id/textView9"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.051" app:layout_constraintVertical_bias="0.273"/>
+
+
+    <TextView
+            android:text="idNum"
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="197dp"
+            android:layout_height="42dp" android:id="@+id/idNum"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.808" app:layout_constraintVertical_bias="0.274"/>
+    <TextView
+            android:text="Mail : "
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="102dp"
+            android:layout_height="39dp" android:id="@+id/textView12"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.459" app:layout_constraintVertical_bias="0.361"/>
+    <TextView
+            android:text="Centre d'interet : "
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="151dp"
+            android:layout_height="42dp" android:id="@+id/textView2"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.446" app:layout_constraintVertical_bias="0.526"/>
+    <TextView
+            android:text="id_Mail"
+            android:textSize="20dp"
+            android:gravity="center"
+            android:layout_width="352dp"
+            android:layout_height="48dp" android:id="@+id/idMail"
+            app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintHorizontal_bias="0.22" app:layout_constraintVertical_bias="0.445"/>
+    <ListView
+            android:id="@+id/listView"
+            android:layout_width="379dp"
+            android:layout_height="151dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="416dp" app:layout_constraintHorizontal_bias="1.0"
+    />
+    <Button
+            android:text="Valider"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:id="@+id/valider"
+            app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" android:layout_marginTop="588dp"
+            app:layout_constraintHorizontal_bias="0.146"/>
+    <Button
+            android:text="Retour"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:id="@+id/retour"
+            app:layout_constraintEnd_toEndOf="parent" app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" android:layout_marginTop="588dp"
+            app:layout_constraintHorizontal_bias="0.839"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

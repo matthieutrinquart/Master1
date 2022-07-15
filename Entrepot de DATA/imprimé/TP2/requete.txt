@@ -1,0 +1,179 @@
+
+11)
+create index idx_reg_departement on departement (reg);
+
+select V.nom, D.nom, R.nom
+from ville V, departement D, region R
+where dep = D.id and reg = R.id;
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 1835970908
+
+-----------------------------------------------------------------------------------------------------
+| Id  | Operation                     | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+-----------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT              |                     | 36601 |  1751K|    75   (3)| 00:00:01 |
+|*  1 |  HASH JOIN                    |                     | 36601 |  1751K|    75   (3)| 00:00:01 |
+|   2 |   MERGE JOIN                  |                     |   104 |  3432 |     6  (17)| 00:00:01 |
+|   3 |    TABLE ACCESS BY INDEX ROWID| DEPARTEMENT         |   104 |  1768 |     2   (0)| 00:00:01 |
+|   4 |     INDEX FULL SCAN           | IDX_REG_DEPARTEMENT |   104 |       |     1   (0)| 00:00:01 |
+|*  5 |    SORT JOIN                  |                     |    27 |   432 |     4  (25)| 00:00:01 |
+|   6 |     TABLE ACCESS FULL         | REGION              |    27 |   432 |     3   (0)| 00:00:01 |
+|   7 |   TABLE ACCESS FULL           | VILLE               | 36601 |   571K|    68   (0)| 00:00:01 |
+-----------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   1 - access("DEP"="D"."ID")
+   5 - access("REG"="R"."ID")
+       filter("REG"="R"."ID")
+
+
+La difference que l on peut voir ici, c est que au lieu de commencer par la table region, le sgbd va commencer
+par prendre tout l index precedemment creer afin ensuite de faire un join avec la table region, puis la suite sera
+la meme que avant l index.
+
+Mais ce que l on peut voir, c est que le nombre de physical reads et de consistent gets reduit de 7 et 148 respectivement.
+Donc la requete sera plus efficace grace à cette index.
+
+12)
+
+select V.nom, D.nom, R.nom
+from ville V, departement D, region R
+where dep = D.id and reg = R.id and R.id = '91';
+
+/*
+Plan d'execution
+----------------------------------------------------------
+Plan hash value: 1726661246
+
+--------------------------------------------------------------------------------------------------------------
+| Id  | Operation                              | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                       |                     |  1830 | 89670 |    21   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                          |                     |  1830 | 89670 |    21   (0)| 00:00:01 |
+|   2 |   NESTED LOOPS                         |                     |  1830 | 89670 |    21   (0)| 00:00:01 |
+|   3 |    NESTED LOOPS                        |                     |     5 |   165 |     2   (0)| 00:00:01 |
+|   4 |     TABLE ACCESS BY INDEX ROWID        | REGION              |     1 |    16 |     1   (0)| 00:00:01 |
+|*  5 |      INDEX UNIQUE SCAN                 | SYS_C00306314       |     1 |       |     0   (0)| 00:00:01 |
+|   6 |     TABLE ACCESS BY INDEX ROWID BATCHED| DEPARTEMENT         |     5 |    85 |     1   (0)| 00:00:01 |
+|*  7 |      INDEX RANGE SCAN                  | IDX_REG_DEPARTEMENT |     5 |       |     0   (0)| 00:00:01 |
+|*  8 |    INDEX RANGE SCAN                    | IDX_DEP_VILLE       |   366 |       |     1   (0)| 00:00:01 |
+|   9 |   TABLE ACCESS BY INDEX ROWID          | VILLE               |   366 |  5856 |     4   (0)| 00:00:01 |
+--------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   5 - access("R"."ID"=91)
+   7 - access("REG"=91)
+   8 - access("DEP"="D"."ID")
+
+
+D abord, il accede à l index de la table region avec le comme acces: R.ID = '91', puis accede au element
+de la table region qui respecte cette condition. Ensuite, il utilise l index de reg sur departement pour 
+acceder au element qui respecte REG = '91'. Sur ces 2 tables, il fait une NESTED LOOPS, puis il accede à l index
+dep de ville tout en respectant DEP = D.ID pour ensuite faire une NESTED LOOPS sur l index IDX_DEP_VILLE et
+la table obtenu par le NESTED LOOPS precedante. Enfin, il accede a la table ville pour faire un NESTED
+LOOPS sur les tables ville et celle obtenu par le 2nd NESTED LOOPS.
+
+Au final cette requete coute peu, seulement 243 consistent gets.
+
+13)
+
+select V.nom, D.nom, R.nom
+from ville V, departement D, region R
+where dep = D.id and reg = R.id and R.id LIKE '7%';
+
+/*Plan d'execution
+----------------------------------------------------------
+Plan hash value: 2524100591
+
+--------------------------------------------------------------------------------------------------------------
+| Id  | Operation                              | Name                | Rows  | Bytes | Cost (%CPU)| Time     |
+--------------------------------------------------------------------------------------------------------------
+|   0 | SELECT STATEMENT                       |                     |  1830 | 89670 |    23   (0)| 00:00:01 |
+|   1 |  NESTED LOOPS                          |                     |  1830 | 89670 |    23   (0)| 00:00:01 |
+|   2 |   NESTED LOOPS                         |                     |  1830 | 89670 |    23   (0)| 00:00:01 |
+|   3 |    NESTED LOOPS                        |                     |     5 |   165 |     4   (0)| 00:00:01 |
+|*  4 |     TABLE ACCESS FULL                  | REGION              |     1 |    16 |     3   (0)| 00:00:01 |
+|   5 |     TABLE ACCESS BY INDEX ROWID BATCHED| DEPARTEMENT         |     4 |    68 |     1   (0)| 00:00:01 |
+|*  6 |      INDEX RANGE SCAN                  | IDX_REG_DEPARTEMENT |     4 |       |     0   (0)| 00:00:01 |
+|*  7 |    INDEX RANGE SCAN                    | IDX_DEP_VILLE       |   366 |       |     1   (0)| 00:00:01 |
+|   8 |   TABLE ACCESS BY INDEX ROWID          | VILLE               |   352 |  5632 |     4   (0)| 00:00:01 |
+--------------------------------------------------------------------------------------------------------------
+
+Predicate Information (identified by operation id):
+---------------------------------------------------
+
+   4 - filter(TO_CHAR("R"."ID") LIKE '7%')
+   6 - access("REG"="R"."ID")
+   7 - access("DEP"="D"."ID")
+
+
+
+Dans en premier temps, le SGBD accede à l index reg de departement avec comme condition REG = R.ID,
+puis il accede au valeur correspodantes dans la tables departement. Par la suite, il accede entierement
+a la table Region avec comme condition 'TO_CHAR("R"."ID") LIKE '7%')' pour ensuite faire une NESTED LOOPS.
+Après, il accede a l index de dep dans ville pour prendre les valeurs correspondantes a DEP = D.ID pour ensuite
+a nouveau faire une NESTED LOOPS entre la premiere NESTED LOOPS et l index. A la fin, le SGBD accede a la table
+ville pour recuperer les valeurs resultante de la requete en faisant une derniere NESTED LOOPS entre la 2nd et 
+la table ville.
+
+On peut voir que cette requete coute, car l obtient 904 consistent gets et 22 physical reads.
+
+/*1.5 Les statistiques des tables*/
+
+14)
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+WHERE TABLE_NAME = 'VILLE'
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+INSEE
+                                36601          0 ,000027322 23/09/2021
+NOM
+                                33772          0  ,00002961 23/09/2021
+DEP
+                                  100          0 ,000013661 23/09/2021
+*/
+
+
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+where TABLE_NAME = 'REGION';
+
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+ID
+                                   27          0 ,037037037 23/09/2021
+NOM
+                                   27          0 ,037037037 23/09/2021*/
+
+
+
+SELECT COLUMN_NAME, NUM_DISTINCT, NUM_NULLS, DENSITY, LAST_ANALYZED
+FROM USER_TAB_COLUMNS
+where TABLE_NAME = 'DEPARTEMENT';
+
+/*
+COLUMN_NAME
+                         NUM_DISTINCT  NUM_NULLS    DENSITY LAST_ANALY
+-------------------------------------------------------------------------------------------------------------------------------- ------------ ---------- ---------- ----------
+ID
+                                  104          0 ,009615385 23/09/2021
+NOM
+                                  104          0 ,009615385 23/09/2021
+REG
+                                   27          0 ,004807692 23/09/2021
+*/
+
+EXECUTE DBMS_STATS.GATHER_SCHEMA_STATS('e20180001328');

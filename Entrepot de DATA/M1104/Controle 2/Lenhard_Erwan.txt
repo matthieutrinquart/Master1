@@ -1,0 +1,117 @@
+Lenhard Erwan 
+
+Exercice 1 
+
+	Schéma relationnel :
+	
+	LOGEMENT (?id_log, adresse, CP, ville, genre, EtatAlarme)
+	PIECE (?id_piece, #id_log, type_piece, situation, superficie, nbOuverture)
+	CAPTEUR (?ref_capteur, #id_piece, type, roel, etat_Capteur)
+	CLIENT (?login, nom, prenom, date_naissance, psswd)
+	CONTROLER (?(droit, #id_piece, #login))
+	
+	Script SQL :
+	
+	CREATE TABLE LOGEMENT
+		(
+			id_log SERIAL PRIMARY KEY,
+			addresse VARCHAR(150) NOT NULL,
+			CP DECIMAL(4,0) NOT NULL,
+			ville VARCHAR(40) NOT NULL,
+			genre VARCHAR(20),
+			EtatAlarme BOOL
+		);
+		
+	CREATE TABLE PIECE
+		(
+			id_piece SERIAL PRIMARY KEY,
+			id_log INTEGER NOT NULL,
+			type_piece VARCHAR(25) NOT NULL,
+			situation VARCHAR(30) NOT NULL,
+			superficie REAL NOT NULL,
+			nbOuverture INTEGER BETWEEN(1,50),
+			Constraint FK_PIECE FOREIGN KEY (id_log) REFERENCES LOGEMENT (id_log)
+		);
+		
+	CREATE TABLE CAPTEUR
+		(
+			ref INTEGER PRIMARY KEY,
+			id_piece INTEGER NOT NULL,
+			type VARCHAR(45),
+			role VARCHAR(45) NOT NULL,
+			etat_capteur BOOL DEFAULT FALSE,
+			Constraint FK_CAPTEUR FOREIGN KEY (id_piece) REFERENCES PIECE (id_piece)
+		);
+		
+	CREATE TABLE CLIENT
+		(
+			login VARCHAR(45) PRIMARY KEY NOT NULL,
+			nom VARCHAR(30) NOT NULL,
+			prenom VARCHAR(30),
+			date_naissance DATE
+			passwd VARCHAR(250) NOT NULL
+		);
+		
+	CREATE TABLE CONTROLER
+		(
+			droit VARCHAR(30) PRIMARY KEY NOT NULL,
+			id_piece INTEGER NOT NULL,
+			login VARCHAR(45) NOT NULL,
+			
+			Constraint FK_ID FOREIGN KEY (id_piece) REFERENCES PIECE (id_piece),
+			Constraint FK_LOGIN FOREIGN KEY (login) REFERENCES CLIENT (login)
+		);
+		
+
+Exercice 2:
+  
+  1.	Π(nom, prenom)PRODUCTEUR
+  2.	Π(nom, prenom)PRODUCTEUR σ(region = 'Beaujolais')PRODUCTEUR
+  3.	Π(numv)VINS><RECOLTE><PRODUCTEUR  σ((degre>12) ET (nump=24))
+  4.	Π(nom, prenom)PRODUCTEUR><RECOLTE><VINS σ(degre=12) U σ(degre=13)
+  5.	(Π(nom, prenom, numv)PRODUCTEUR><RECOLTE><VINS) ÷ Π(numv)VINS
+  6.	Π(nom, cru, annee quantite)PRODUCTEUR><RECOLTE><VINS σ(regin = 'Côte du Rhône')
+  7.	Π(nom, prenom)PRODUCTEUR - Π(nom, prenom)PRODUCTEUR><RECOLTE><VINS σ(annee = 2000)
+  
+
+Exercice 3:
+
+  1.	SELECT nom_etu, prenom_etu 
+		FROM Etudiant
+		WHERE extract(year from daten)=2002
+		
+  2.	SELECT nom_etu, prenom_etu, note, nom_soc
+		FROM Etudiant NATURAL JOIN Convention NATURAL JOIN Societe
+		ORDER BY nom_etu
+		
+  3.	SELECT nom_pers, prenom_pers
+		FROM Personnel NATURAL JOIN Convention NATURAL JOIN Etudiant
+		WHERE (salaire BETWEEN 2000 AND 3000) OR (salaire < 1900)
+		
+  4.	SELECT nom_pers, prenom_pers
+		FROM Personnel NATURAL JOIN Convention NATURAL JOIN Etudiant
+		WHERE ide = 8
+		INTERSECT
+		SELECT nom_pers, prenom_pers
+		FROM Personnel NATURAL JOIN Convention NATURAL JOIN Etudiant
+		WHERE ide = 17
+		
+  5.	SELECT nom_etu, prenom_etu
+		FROM Etudiant NATURAL JOIN Convention NATURAL JOIN Societe
+		WHERE nom_soc = 'Microware'
+		
+		INTERSECT
+		
+		SELECT nom_etu, prenom_etu
+		FROM Etudiant NATURAL JOIN Convention NATURAL JOIN Societe
+		WHERE nom_soc = 'TOTAL'
+		
+		EXCEPT
+		
+		SELECT nom_etu, prenom_etu
+		FROM Etudiant NATURAL JOIN Convention NATURAL JOIN Societe
+		WHERE nom_soc = 'EdF'
+		
+  6.	SELECT nom_etu, prenom_etu, nom_pers, nom_soc
+		FROM Etudiant NATURAL JOIN Convention NATURAL JOIN Personnel NATURAL JOIN Societe
+		WHERE extract(year from datec)=2020

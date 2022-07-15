@@ -1,0 +1,46 @@
+create schema TP2_bd_gite;
+set search_path=TP2_bd_gite;
+
+CREATE TABLE gite (
+    NumGite SERIAL PRIMARY KEY,
+    NomGite VARCHAR(25),
+    AdrGite VARCHAR(50),
+    CpGite NUMERIC(5,0),
+    VilleGite VARCHAR(35),
+    TelGite INTEGER UNIQUE,
+    descr VARCHAR(20) NOT NULL
+);
+
+CREATE TABLE chambre (
+    NumCh SERIAL PRIMARY KEY,
+    NumGite INTEGER NOT NULL,
+    NbLitSi INTEGER NOT NULL DEFAULT 1,
+    NbLitDo INTEGER,
+    SuperficieCh INTEGER,
+    CONSTRAINT fk_chambre FOREIGN KEY (NumGite) REFERENCES Gite(NumGite) ON UPDATE CASCADE
+);
+
+CREATE TABLE client (
+    NumCli SERIAL PRIMARY KEY,
+    NomCli VARCHAR(35) NOT NULL,
+    AdrCli VARCHAR(50) NOT NULL,
+    CpCli NUMERIC(5,0) NOT NULL,
+    VilleCli VARCHAR(35) NOT NULL,
+    TelCli VARCHAR(20) NOT NULL UNIQUE,
+    NbEnf INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE louer (
+    NumCli INTEGER NOT NULL,
+    NumGite INTEGER NOT NULL,
+    Duree INTEGER DEFAULT 1,
+    NbPers INTEGER DEFAULT 1,
+    DateDebut DATE DEFAULT CURRENT_DATE,
+    CONSTRAINT fk_louer_cli FOREIGN KEY (NumCli) REFERENCES client(NumCli) ON UPDATE CASCADE,
+    CONSTRAINT fk_louer_gite FOREIGN KEY (NumGite) REFERENCES gite(NumGite) ON UPDATE CASCADE,
+    CONSTRAINT pk_louer PRIMARY KEY (NumCli, NumGite)
+);
+
+CREATE TABLE saison (
+    saison VARCHAR(10) NOT NULL
+);

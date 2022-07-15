@@ -1,0 +1,99 @@
+//Remplir la base pour donner de meilleurs résultats (sum, avg...)
+
+Pour faciliter la lecture des résultats des requêtes, nous avons laissé les identifiants (des gares par exemple) et choisi de ne pas mettre beaucoup d'attributs dans les projections
+
+Requêtes pour la vente de tickets : 
+
+Requête 1 : Quel est le montant total des billets vendus par gare de départ en fonction de la saison et du mois ?
+
+SELECT ID_GARE_DEPART, SAISON, MOIS, SUM(PRIX) AS "Montant total"
+FROM TICKET JOIN 
+DATE_DATE ON TICKET.ID_DATE = DATE_DATE.ID_DATE
+GROUP BY ID_GARE_DEPART, SAISON, MOIS
+ORDER BY ID_GARE_DEPART;
+
+Requête 2 : Quel est le montant total des billets vendus pour chaque trajet (gare de départ et d’arrivée) en fonction du mois ?
+
+SELECT ID_GARE_DEPART, ID_GARE_ARRIVEE, MOIS, SUM(prix)  AS "Montant total"
+FROM TICKET 
+JOIN GARE ON TICKET.ID_GARE_DEPART = GARE.ID_GARE 
+JOIN GARE ON TICKET.ID_GARE_ARRIVEE = GARE.ID_GARE 
+JOIN DATE_DATE ON TICKET.ID_DATE = DATE_DATE.ID_DATE
+GROUP BY ID_GARE_DEPART, ID_GARE_ARRIVEE, MOIS
+ORDER BY ID_GARE_DEPART, ID_GARE_ARRIVEE;
+
+Requête 3 : Quel est le prix moyen d'un ticket pour un trajet (gare de départ et d'arrivée) en fonction du type de train emprunté ?
+
+SELECT ID_GARE_DEPART, ID_GARE_ARRIVEE, COALESCE(TYPE_TRAIN, 'Pour tous les types de trains'), AVG(PRIX) AS "Prix moyen"
+FROM TICKET JOIN TRAIN ON TICKET.ID_TRAIN=TRAIN.ID_TRAIN
+GROUP BY ROLLUP(TYPE_TRAIN), ID_GARE_DEPART, ID_GARE_ARRIVEE;
+
+Requête 4 : Quel est le nombre de tickets vendus pour une certaine promotion en fonction du département de la gare de départ et de l'année ?
+
+SELECT PROMOTION.ID_PROMOTION, CODE_DEPARTEMENT_GARE, ANNEE, COUNT(*) AS "Nb tickets"
+FROM TICKET JOIN
+PROMOTION ON TICKET.ID_PROMOTION = PROMOTION.ID_PROMOTION
+JOIN GARE ON TICKET.ID_GARE_DEPART = GARE.ID_GARE
+JOIN DATE_DATE ON TICKET.ID_DATE = DATE_DATE.ID_DATE
+GROUP BY PROMOTION.ID_PROMOTION, CODE_DEPARTEMENT_GARE, ANNEE
+ORDER BY PROMOTION.ID_PROMOTION, CODE_DEPARTEMENT_GARE;
+
+Requête 5 : Quel est, pour chaque promotion, le nombre de personnes qui n'avaient pas la carte lorsqu'elles ont acheté le ticket ?
+
+SELECT PROMOTION.ID_PROMOTION, CARTE_REDUCTION, COUNT(*) AS "Nombre de tickets"
+FROM TICKET
+JOIN VOYAGEUR ON TICKET.ID_VOYAGEUR = VOYAGEUR.ID_VOYAGEUR
+JOIN PROMOTION ON TICKET.ID_PROMOTION=PROMOTION.ID_PROMOTION
+WHERE PROMOTION.ID_PROMOTION != 1
+GROUP BY PROMOTION.ID_PROMOTION, CARTE_REDUCTION;
+
+
+
+//TODO écouter le vocal car je ne suis pas sure de mes requetes sans le ajd
+Requêtes pour l'occupation des trains : 
+
+Requête 1 : Quel est le taux d'occupation moyen de chaque trajet en fonction du type de train utilisé ? 
+
+SELECT ID_GARE_DEPART, ID_GARE_ARRIVEE, COALESCE(TYPE_TRAIN, 'Pour tous les types de trains') AS TYPE_TRAIN, AVG(TAUX_OCCUPATION) AS "Taux d'occupation moyen"
+FROM TRAJET 
+JOIN TRAIN ON TRAJET.ID_TRAIN = TRAIN.ID_TRAIN
+JOIN GARE G ON TRAJET.ID_GARE_DEPART = G.ID_GARE
+JOIN GARE GG ON TRAJET.ID_GARE_ARRIVEE = GG.ID_GARE
+GROUP BY ROLLUP(TYPE_TRAIN), ID_GARE_DEPART, ID_GARE_ARRIVEE;
+
+Requête 2 : Quel est le taux d'occupation moyen des trains au départ de chaque département et chaque ville ?
+
+SELECT CODE_DEPARTEMENT_GARE, CODE_VILLE_GARE, AVG(TAUX_OCCUPATION) AS "Taux d'occupation moyen"
+FROM TRAJET JOIN GARE ON ID_GARE_DEPART = GARE.ID_GARE 
+GROUP BY CODE_DEPARTEMENT_GARE, CODE_VILLE_GARE
+ORDER BY CODE_DEPARTEMENT_GARE, CODE_VILLE_GARE;
+
+Requête 3 : Quel est le taux d’occupation maximal de chaque trajet en fonction des jours de chaque mois ?
+
+SELECT ID_GARE_DEPART, ID_GARE_ARRIVEE, MOIS, JOUR, MAX(TAUX_OCCUPATION) AS "Taux max"
+FROM TRAJET JOIN DATE_DATE on TRAJET.ID_DATE=DATE_DATE.ID_DATE
+GROUP BY ID_GARE_DEPART, ID_GARE_ARRIVEE, MOIS, JOUR
+ORDER BY ID_GARE_DEPART, ID_GARE_ARRIVEE, MOIS, JOUR;
+
+Requête 4 : Quel est le taux d'occupation moyen des trains en gare d’arrivée de chaque département et chaque ville ?
+
+SELECT CODE_DEPARTEMENT_GARE, CODE_VILLE_GARE, T.ID_GARE_ARRIVEE, AVG(TAUX_OCCUPATION) AS "Taux moyen d'occupation"
+FROM TRAJET T JOIN GARE ON T.ID_GARE_ARRIVEE = GARE.ID_GARE
+GROUP BY CODE_DEPARTEMENT_GARE, CODE_VILLE_GARE, T.ID_GARE_ARRIVEE
+ORDER BY CODE_DEPARTEMENT_GARE, CODE_VILLE_GARE, T.ID_GARE_ARRIVEE;
+
+Requête 5 : Quelles gares ont tendance a plus être des destinations que des départs aujourd'hui ?
+   
+SELECT ID_GARE_ARRIVEE, CMPT1 AS "Taux d'occ a l'arrivee", CMPT2 AS "Taux d'occ au depart"
+FROM
+(	SELECT ID_GARE_ARRIVEE, AVG(TAUX_OCCUPATION) AS CMPT1
+	FROM TRAJET t
+	GROUP BY ID_GARE_ARRIVEE
+) ARR
+JOIN
+(	SELECT ID_GARE_DEPART, AVG(TAUX_OCCUPATION) AS CMPT2
+	FROM TRAJET t
+	GROUP BY ID_GARE_DEPART
+) DEP ON ARR.ID_GARE_ARRIVEE = DEP.ID_GARE_DEPART
+WHERE ARR.CMPT1 >= DEP.CMPT2
+ORDER BY ID_GARE_ARRIVEE;

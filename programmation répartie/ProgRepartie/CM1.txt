@@ -1,0 +1,42 @@
+Communication inter-processus (IPC) HAI721I
+Bouziane (co-responsable mais pas de mail, elle répondra pas)
+Seriai sera là
+Projet (D'abord partie théorie puis pratique) -> Possiblement avant les vacances de Noël si on est rapide
+
+Exemple IPC : Thread/Fork
+Exclusion mutuelle, par exemple avec jeton/verrou (sémaphore), pour exclure les autres utilisateurs pendant un accés à une section critique (modification données en même temps par exemple).
+
+Dans les exos : Si le lien de parenté n'est pas explicitement donné on évitera d'utiliser fork.
+
+3 mécanismes :
+- Fil de message (extension de pipe/tube)
+- Segment mémoire partagé (créer une zone mémoire accessible par différents processus) -> En créant un segment mémoire en dehors de la zone d'adressage du processeur
+- Tableau de sémaphore (on peut par exemple imposer un ordre d'exécution des processus)
+
+Plusieurs processus accèdent à un même objet IPC :
+-> Via une clé (chemin d'un fichier existant + entier) -> Transformé en clé numérique
+Existant (généralement on crée un fichier texte vide dans le dossier du processus et on y touche plus), c'est parce que l'IPC utilise l'inode du fichier est utilisé, et donc si le fichier est modifié, l'inode change.
+EN C : 	key.t uneClef = ftok(const char * chemin, int entier);
+		key.t sesame = ftok("./readme.txt", 10);
+		int id_obj = ?get(sesame, ...); pour accéder à l'identifiant
+/!\ L'objet IPC reste en mémoire jusqu'à sa destruction explicite (ipcrm, destruction par code, restart système), en particulier la fin du processus qui l'a crée ne détruira pas l'IPC /!\
+
+Fil de message :
+En particulier, les messages peuvent avoir des étiquettes (par exemple on peut dire qu'un message a une couleur), et on pourra accéder au message en spécifiant ou non une couleur.
+Attention ça reste une file.
+En C : 	int msgget(key_t uneClef, int droits)
+		int f_id = msgget(cle, IPC_CREAT|0666) -> Renvois id si file existe, sinon crée grâce à IPC_CREAT
+		int f_id = msgget(cle, O_RDONLY) -> Accés lecture seule sur file existante (erreur si ça n'existe pas ou droits incompatible)
+		
+Le message :
+	struct msgbuf {
+		long mtype; /* étiquette, must be >0 */
+		char mtext[1]: /* message data */
+	}
+	/!\ Seul l'étiquette est obligatoire, je peux faire ce que je veux avec le reste, du temps que ça n'est pas un pointeur /!\
+	
+Quand on récupère le message, size_t lgmsg ne contient pas la taille de l'étiquette
+Voir le cours pour l'implémentation.
+
+
+Ensembles de sémaphores
